@@ -16,6 +16,8 @@ type Publisher struct {
 
 	sysSignal  chan os.Signal
 	DoneSignal chan struct{}
+
+	IsClosed bool
 }
 
 func NewPublisher(skey int, shmSize int) *Publisher {
@@ -65,6 +67,9 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 }
 
 func (p *Publisher) Write(data []byte) {
+	if p.IsClosed {
+		return
+	}
 	dataLen := uint(len(data))
 	if p.shmInfo.WritePtr+p.shmInfo.writeLen+dataLen > uint(p.shmInfo.Size) {
 		p.shmInfo.WritePtr = 0
@@ -77,6 +82,7 @@ func (p *Publisher) Write(data []byte) {
 
 func (p *Publisher) Close() (err error) {
 	p.Write([]byte("EOF"))
+	p.IsClosed = true
 	err = p.segment.DeleteShm()
 	if err != nil {
 		fmt.Println("DeleteShm err : ", err)

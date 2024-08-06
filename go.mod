@@ -1,4 +1,4 @@
-module github.com/lianyun0502/shm_agent
+module github.com/lianyun0502/shm
 
 go 1.22.5
 
