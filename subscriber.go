@@ -16,7 +16,9 @@ type Subscriber struct {
 
 	stopSignal chan struct{}
 
-	flag bool
+	startFlag bool
+	preWritePtr uint
+
 }
 
 func NewSubscriber(skey int, shmSize int) *Subscriber {
@@ -45,15 +47,23 @@ func NewSubscriber(skey int, shmSize int) *Subscriber {
 	sharedMem := (*ShmMemInfo)(unsafe.Pointer(segmentInfo.Addr))
 	p := (*byte)(unsafe.Pointer(segmentData.Addr))
 	sharedMemData := unsafe.Slice(p, shmSize)
-	return &Subscriber{shm: sharedMem, segment: segmentInfo, stopSignal: make(chan struct{}), Data: sharedMemData}
+	return &Subscriber{
+		shm: sharedMem, 
+		segment: segmentInfo, 
+		stopSignal: make(chan struct{}), 
+		Data: sharedMemData,
+		startFlag: false,
+		preWritePtr: 0,
+	}
 }
 
 func (s *Subscriber) ReadLoop() {
 	for {
-		if s.shm.Flag == s.flag {
+		if (s.preWritePtr == s.shm.WritePtr) && s.startFlag {
 			continue
 		}
-		s.flag = s.shm.Flag
+		s.startFlag = true
+		s.preWritePtr = s.shm.WritePtr
 		data := make([]byte, s.shm.writeLen)
 		fmt.Printf("Ptr : %d, Len : %d\n", s.shm.WritePtr, s.shm.writeLen)
 		copy(data, s.Data[s.shm.WritePtr:s.shm.WritePtr+s.shm.writeLen])

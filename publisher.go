@@ -43,7 +43,6 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 	}
 	sharedMemInfo := (*ShmMemInfo)(unsafe.Pointer(segmentInfo.Addr))
 	sharedMemInfo.Size = uint(shmSize)
-	sharedMemInfo.Flag = false
 	p := (*byte)(unsafe.Pointer(segmentData.Addr))
 	sharedMemData := unsafe.Slice(p, shmSize)
 
@@ -74,12 +73,6 @@ func (p *Publisher) Write(data []byte) {
 	}
 	p.shmInfo.writeLen = dataLen
 	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+p.shmInfo.writeLen], data)
-
-	if p.shmInfo.Flag {
-		p.shmInfo.Flag = false
-	} else {
-		p.shmInfo.Flag = true
-	}
 }
 
 func (p *Publisher) Close() (err error) {

@@ -8,7 +8,7 @@ type ShmMemInfo struct {
 	WritePtr uint
 	writeLen uint
 
-	Flag bool
+	// Flag bool
 	Size uint
 }
 var info ShmMemInfo
