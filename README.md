@@ -1,20 +1,67 @@
 # shm_agent
 
-## Description
+[![Go Report Card](https://goreportcard.com/badge/github.com/lianyun0502/shm)](https://goreportcard.com/report/github.com/lianyun0502/shm)
+[![GoDoc](https://godoc.org/github.com/lianyun0502/shm?status.svg)](https://godoc.org/github.com/lianyun0502/shm)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)]
+
 shm is a Pub/Sub pacakge that uses shared memory to communicate between processes.
 
 ## Index
-- [Description](#description)
+- [Introduction](#Introduction)
+- [Installation](#Installation)
+- [Example](#Example)
 
 ## Installation
-* git clone the repository
-```bash
-git clone https://github.com/lianyun0502/shm.git
-```
-* go get the package
-```bash
-go get github.com/lianyun0502/shm
-```
+
+there are two ways to install and use the package, one is to clone the repository and refer to local path and the other is to use the `go get` command set to `go.mod`.
+
+### Git clone the repository
+
+1. first clone the repository into your project directory
+
+    ```bash
+    git clone https://github.com/lianyun0502/exchange_conn.git
+    ```
+
+    Your directory structure should look like this:
+
+    ```bash
+    your_project/
+    ├── exchange_conn/
+    ├── main.go
+    └── go.mod
+    ```
+    
+2. replace the import refernce with the path of the repository in your project.
+
+    ```bash
+    go mod edit -replace=github.com/lianyun0502/exchange_conn=../exchange_conn
+    ```
+
+3. import the package in your project
+
+    ```Go
+    import (
+        "github.com/lianyun0502/exchange_conn"
+        "github.com/lianyun0502/exchange_conn/v1/binance_conn"
+    )
+    ```
+
+### Install the package use `go get`
+
+1. use the `go get` command to install the package
+
+    ```bash
+    go get github.com/lianyun0502/exchange_conn
+    ```
+2. import the package in your project
+
+    ```Go
+    import (
+        "github.com/lianyun0502/exchange_conn"
+        "github.com/lianyun0502/exchange_conn/v1/binance_conn"
+    )
+    ```
 
 ## Example
 
