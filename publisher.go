@@ -27,20 +27,20 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 
 	err := segmentInfo.CreateShm()
 	if err != nil {
-		logger.Warning("CreateShm err : ", err)
+		Logger.Warning("CreateShm err : ", err)
 	}
 	err = segmentData.CreateShm()
 	if err != nil {
-		logger.Warning("CreateShm err : ", err)
+		Logger.Warning("CreateShm err : ", err)
 	}
 
 	err = segmentInfo.AttachShm()
 	if err != nil {
-		logger.Warning("AttachShm err : ", err)
+		Logger.Warning("AttachShm err : ", err)
 	}
 	err = segmentData.AttachShm()
 	if err != nil {
-		logger.Warning("AttachShm err : ", err)
+		Logger.Warning("AttachShm err : ", err)
 	}
 	sharedMemInfo := (*ShmMemInfo)(unsafe.Pointer(segmentInfo.Addr))
 	sharedMemInfo.Size = uint(shmSize)
@@ -84,10 +84,10 @@ func (p *Publisher) Close() (err error) {
 	p.IsClosed = true
 	err = p.segment.DeleteShm()
 	if err != nil {
-		logger.Info("DeleteShm err : ", err)
+		Logger.Info("DeleteShm err : ", err)
 		return err
 	}
-	logger.Info("Publisher Close")
+	Logger.Info("Publisher Close")
 	p.DoneSignal <- struct{}{}
 	return nil
 }
