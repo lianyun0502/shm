@@ -1,7 +1,6 @@
 package shm
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"unsafe"
@@ -28,20 +27,20 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 
 	err := segmentInfo.CreateShm()
 	if err != nil {
-		fmt.Println("CreateShm err : ", err)
+		logger.Warning("CreateShm err : ", err)
 	}
 	err = segmentData.CreateShm()
 	if err != nil {
-		fmt.Println("CreateShm err : ", err)
+		logger.Warning("CreateShm err : ", err)
 	}
 
 	err = segmentInfo.AttachShm()
 	if err != nil {
-		fmt.Println("AttachShm err : ", err)
+		logger.Warning("AttachShm err : ", err)
 	}
 	err = segmentData.AttachShm()
 	if err != nil {
-		fmt.Println("AttachShm err : ", err)
+		logger.Warning("AttachShm err : ", err)
 	}
 	sharedMemInfo := (*ShmMemInfo)(unsafe.Pointer(segmentInfo.Addr))
 	sharedMemInfo.Size = uint(shmSize)
@@ -85,10 +84,10 @@ func (p *Publisher) Close() (err error) {
 	p.IsClosed = true
 	err = p.segment.DeleteShm()
 	if err != nil {
-		fmt.Println("DeleteShm err : ", err)
+		logger.Info("DeleteShm err : ", err)
 		return err
 	}
-	fmt.Println("Publisher Close")
+	logger.Info("Publisher Close")
 	p.DoneSignal <- struct{}{}
 	return nil
 }
