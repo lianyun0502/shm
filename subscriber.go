@@ -1,6 +1,7 @@
 package shm
 
 import (
+	"encoding/binary"
 	"unsafe"
 
 	// "sync"
@@ -62,9 +63,13 @@ func (s *Subscriber) ReadLoop() {
 		}
 		s.startFlag = true
 		s.preWritePtr = s.shm.WritePtr
+		Logger.Debugf("Ptr : %d, write len : %d", s.shm.WritePtr, s.shm.writeLen)
+
+		dataLen := binary.BigEndian.Uint32(s.Data[s.shm.WritePtr : s.shm.WritePtr+4])
+		Logger.Debugf("Data length: %d", dataLen)
+
 		data := make([]byte, s.shm.writeLen)
-		Logger.Debugf("Ptr : %d, Len : %d", s.shm.WritePtr, s.shm.writeLen)
-		copy(data, s.Data[s.shm.WritePtr:s.shm.WritePtr+s.shm.writeLen])
+		copy(data, s.Data[s.shm.WritePtr+4:s.shm.WritePtr+s.shm.writeLen])
 		s.Handle(data)
 	}
 }

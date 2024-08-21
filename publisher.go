@@ -69,14 +69,17 @@ func (p *Publisher) Write(data []byte) {
 	if p.IsClosed {
 		return
 	}
-	dataLen := uint(len(data))
-	if p.shmInfo.WritePtr+p.shmInfo.writeLen+dataLen > uint(p.shmInfo.Size) {
+	dataLen := uint(len(data)) // paload length
+	dataLenSlice := GenDataLen(dataLen)
+	if (p.shmInfo.WritePtr+p.shmInfo.writeLen)+4+dataLen > uint(p.shmInfo.Size) {
 		p.shmInfo.WritePtr = 0
 	} else {
 		p.shmInfo.WritePtr += p.shmInfo.writeLen
 	}
-	p.shmInfo.writeLen = dataLen
-	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+p.shmInfo.writeLen], data)
+	p.shmInfo.writeLen = 4 + dataLen // write length will be data length + data length number(4byte)
+	offset := p.shmInfo.WritePtr
+	copy((p.shmData)[offset:offset+4], dataLenSlice)
+	copy((p.shmData)[offset+4:offset+p.shmInfo.writeLen], data)
 }
 
 func (p *Publisher) Close() (err error) {
@@ -90,4 +93,13 @@ func (p *Publisher) Close() (err error) {
 	Logger.Info("Publisher Close")
 	p.DoneSignal <- struct{}{}
 	return nil
+}
+
+func GenDataLen[T int | int8 | int16 | int32 | uint | uint8 | uint16 | uint32](dataLen T) []byte {
+	dataLenSlice := make([]byte, 4)
+	dataLenSlice[0] = byte(dataLen >> 24)
+	dataLenSlice[1] = byte(dataLen >> 16)
+	dataLenSlice[2] = byte(dataLen >> 8)
+	dataLenSlice[3] = byte(dataLen)
+	return dataLenSlice
 }
