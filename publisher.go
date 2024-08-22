@@ -17,6 +17,7 @@ type Publisher struct {
 	DoneSignal chan struct{}
 
 	IsClosed bool
+	msgID    uint32
 }
 
 func NewPublisher(skey int, shmSize int) *Publisher {
@@ -52,6 +53,8 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 		shmData:   sharedMemData,
 		segment:   segmentInfo,
 		sysSignal: make(chan os.Signal),
+		DoneSignal: make(chan struct{}),
+		msgID:    0,
 	}
 
 	signal.Notify(publisher.sysSignal, os.Interrupt)
@@ -72,11 +75,14 @@ func (p *Publisher) Write(data []byte) {
 	dataLen := uint(len(data))
 	if p.shmInfo.WritePtr+p.shmInfo.writeLen+dataLen > uint(p.shmInfo.Size) {
 		p.shmInfo.WritePtr = 0
+		p.msgID = 0
 	} else {
 		p.shmInfo.WritePtr += p.shmInfo.writeLen
+		p.msgID++
 	}
 	p.shmInfo.writeLen = dataLen
 	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+p.shmInfo.writeLen], data)
+	Logger.Debugf("MsgID : %d", p.msgID)
 }
 
 func (p *Publisher) Close() (err error) {
