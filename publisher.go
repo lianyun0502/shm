@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"unsafe"
+	"sync"
 
 	"github.com/gdygd/goshm/shmlinux"
 )
@@ -18,6 +19,8 @@ type Publisher struct {
 
 	IsClosed bool
 	msgID    uint32
+
+	msgIDLock sync.Mutex
 }
 
 func NewPublisher(skey int, shmSize int) *Publisher {
@@ -65,7 +68,19 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 			segmentInfo.DeleteShm()
 		}
 	}()
+	Scheduler.Every(1).Day().At("00:00").Do(publisher.ResetMsgID)
 	return publisher
+}
+func (p *Publisher) ResetMsgID() {
+	p.msgIDLock.Lock()
+	defer p.msgIDLock.Unlock()
+	p.msgID = 0
+}
+
+func (p *Publisher) IncreaseMsgID() {
+	p.msgIDLock.Lock()
+	defer p.msgIDLock.Unlock()
+	p.msgID++
 }
 
 func (p *Publisher) Write(data []byte) {
@@ -75,10 +90,10 @@ func (p *Publisher) Write(data []byte) {
 	dataLen := uint(len(data))
 	if p.shmInfo.WritePtr+p.shmInfo.writeLen+dataLen > uint(p.shmInfo.Size) {
 		p.shmInfo.WritePtr = 0
-		p.msgID = 0
+		p.ResetMsgID()
 	} else {
 		p.shmInfo.WritePtr += p.shmInfo.writeLen
-		p.msgID++
+		p.IncreaseMsgID()
 	}
 	p.shmInfo.writeLen = dataLen
 	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+p.shmInfo.writeLen], data)
