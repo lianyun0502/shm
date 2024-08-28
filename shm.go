@@ -4,8 +4,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"unsafe"
-	"time"
-	"github.com/go-co-op/gocron"
 )
 
 type ShmMemInfo struct {
@@ -28,5 +26,3 @@ var Logger = &logrus.Logger{
 	ExitFunc:     os.Exit,
 	ReportCaller: false,
 }
-
-var Scheduler = gocron.NewScheduler(time.UTC)

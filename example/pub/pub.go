@@ -5,13 +5,15 @@ import (
 	"time"
 
 	"github.com/lianyun0502/shm"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	publisher := shm.NewPublisher(66, 1024*1024)
+	shm.Logger.SetLevel(logrus.DebugLevel)
+	publisher := shm.NewPublisher(333, 1024*1024)
 	defer publisher.Close()
-
-
+	publisher.Scheduler.Every(30).Second().Do(publisher.ResetMsgID)
+	
 	for i:=0; i<100000; i++ {
 		s := fmt.Sprintf("hello %d", i)
 		publisher.Write([]byte(s))

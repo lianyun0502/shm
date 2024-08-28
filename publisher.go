@@ -5,8 +5,10 @@ import (
 	"os/signal"
 	"unsafe"
 	"sync"
+	"time"
 
 	"github.com/gdygd/goshm/shmlinux"
+	"github.com/go-co-op/gocron"
 )
 
 type Publisher struct {
@@ -20,6 +22,7 @@ type Publisher struct {
 	IsClosed bool
 	msgID    uint32
 
+	Scheduler *gocron.Scheduler
 	msgIDLock sync.Mutex
 }
 
@@ -58,6 +61,7 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 		sysSignal: make(chan os.Signal),
 		DoneSignal: make(chan struct{}),
 		msgID:    0,
+		Scheduler: gocron.NewScheduler(time.UTC),
 	}
 
 	signal.Notify(publisher.sysSignal, os.Interrupt)
@@ -68,7 +72,8 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 			segmentInfo.DeleteShm()
 		}
 	}()
-	Scheduler.Every(1).Day().At("00:00").Do(publisher.ResetMsgID)
+	publisher.Scheduler.Every(1).Day().At("00:00").Do(publisher.ResetMsgID)
+	publisher.Scheduler.StartAsync()
 	return publisher
 }
 func (p *Publisher) ResetMsgID() {
