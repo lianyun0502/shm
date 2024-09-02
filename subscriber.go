@@ -1,6 +1,9 @@
 package shm
 
 import (
+	"bytes"
+	"os"
+	"os/signal"
 	"unsafe"
 
 	// "sync"
@@ -14,6 +17,9 @@ type Subscriber struct {
 	Data    []byte
 
 	stopSignal chan struct{}
+	sysSignal  chan os.Signal
+
+	dataCH 	chan []byte
 
 	startFlag   bool
 	preWritePtr uint
@@ -45,14 +51,28 @@ func NewSubscriber(skey int, shmSize int) *Subscriber {
 	sharedMem := (*ShmMemInfo)(unsafe.Pointer(segmentInfo.Addr))
 	p := (*byte)(unsafe.Pointer(segmentData.Addr))
 	sharedMemData := unsafe.Slice(p, shmSize)
-	return &Subscriber{
+
+	subscriber := &Subscriber{
 		shm:         sharedMem,
 		segment:     segmentInfo,
 		stopSignal:  make(chan struct{}),
+		sysSignal:   make(chan os.Signal, 1),
+		dataCH: 	make(chan []byte),
 		Data:        sharedMemData,
 		startFlag:   false,
 		preWritePtr: 0,
 	}
+
+	signal.Notify(subscriber.sysSignal, os.Interrupt)
+
+	go func() {
+		sig := <-subscriber.sysSignal
+		if sig == os.Interrupt {
+			segmentInfo.DeleteShm()
+		}
+	}()
+
+	return subscriber
 }
 
 func (s *Subscriber) ReadLoop() {
@@ -64,6 +84,10 @@ func (s *Subscriber) ReadLoop() {
 		s.preWritePtr = s.shm.WritePtr
 		data := make([]byte, s.shm.writeLen)
 		Logger.Debugf("Ptr : %d, Len : %d", s.shm.WritePtr, s.shm.writeLen)
+		if bytes.Equal(data, []byte("EOF")) {
+			s.Close()
+			return
+		}
 		copy(data, s.Data[s.shm.WritePtr:s.shm.WritePtr+s.shm.writeLen])
 		s.Handle(data)
 	}
@@ -71,4 +95,6 @@ func (s *Subscriber) ReadLoop() {
 
 func (s *Subscriber) Close() {
 	s.segment.DeleteShm()
+	Logger.Info("Subscriber Close")
 }
+

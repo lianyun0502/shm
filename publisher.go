@@ -59,7 +59,7 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 		shmData:   sharedMemData,
 		segment:   segmentInfo,
 		sysSignal: make(chan os.Signal),
-		DoneSignal: make(chan struct{}),
+		DoneSignal: make(chan struct{}, 1),
 		msgID:    0,
 		Scheduler: gocron.NewScheduler(time.UTC),
 	}
@@ -106,7 +106,7 @@ func (p *Publisher) Write(data []byte) {
 }
 
 func (p *Publisher) Close() (err error) {
-	p.Write([]byte("EOF"))
+	p.Write([]byte(""))
 	p.IsClosed = true
 	err = p.segment.DeleteShm()
 	if err != nil {
