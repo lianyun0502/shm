@@ -20,7 +20,7 @@ type Publisher struct {
 	DoneSignal chan struct{}
 
 	IsClosed bool
-	msgID    uint32
+	msgID    uint32 //當日第幾筆訊息
 
 	Scheduler *gocron.Scheduler
 	msgIDLock sync.Mutex
