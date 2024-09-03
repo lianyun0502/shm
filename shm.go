@@ -38,7 +38,7 @@ func NewSegment(skey int, size int) (*shmlinux.Linuxshm, error) {
 		Logger.Warning("CreateShm err : ", err)
 		return nil, err
 	}
-	err = segment.CreateShm()
+	err = segment.AttachShm()
 	if err != nil {
 		Logger.Warning("CreateShm err : ", err)
 		return nil, err
