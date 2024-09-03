@@ -3,17 +3,17 @@ package shm
 import (
 	"os"
 	"os/signal"
-	"unsafe"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/gdygd/goshm/shmlinux"
 	"github.com/go-co-op/gocron"
 )
 
 type Publisher struct {
-	shmInfo *ShmMemInfo
-	shmData []byte
+	shmInfo     *ShmInfo
+	shmData     []byte
 	segmentInfo *shmlinux.Linuxshm
 	segmentData *shmlinux.Linuxshm
 
@@ -21,49 +21,28 @@ type Publisher struct {
 	DoneSignal chan struct{}
 
 	IsClosed bool
-	msgID    uint32 //當日第幾筆訊息
 
 	Scheduler *gocron.Scheduler
 	msgIDLock sync.Mutex
 }
 
 func NewPublisher(skey int, shmSize int) *Publisher {
-	segmentInfo := shmlinux.NewLinuxShm()
-	segmentData := shmlinux.NewLinuxShm()
-	segmentInfo.InitShm(skey, int(InfoSize))
-	segmentData.InitShm(skey|0x6666, shmSize)
+	segmentInfo, _ := NewSegment(skey, int(InfoSize))
+	segmentData, _ := NewSegment(skey|0x6666, shmSize)
 
-	err := segmentInfo.CreateShm()
-	if err != nil {
-		Logger.Warning("CreateShm err : ", err)
-	}
-	err = segmentData.CreateShm()
-	if err != nil {
-		Logger.Warning("CreateShm err : ", err)
-	}
-
-	err = segmentInfo.AttachShm()
-	if err != nil {
-		Logger.Warning("AttachShm err : ", err)
-	}
-	err = segmentData.AttachShm()
-	if err != nil {
-		Logger.Warning("AttachShm err : ", err)
-	}
-	sharedMemInfo := (*ShmMemInfo)(unsafe.Pointer(segmentInfo.Addr))
+	sharedMemInfo := (*ShmInfo)(unsafe.Pointer(segmentInfo.Addr))
 	sharedMemInfo.Size = uint(shmSize)
 	p := (*byte)(unsafe.Pointer(segmentData.Addr))
 	sharedMemData := unsafe.Slice(p, shmSize)
 
 	publisher := &Publisher{
-		shmInfo:   sharedMemInfo,
-		shmData:   sharedMemData,
-		segmentInfo:   segmentInfo,
-		segmentData:   segmentData,
-		sysSignal: make(chan os.Signal),
-		DoneSignal: make(chan struct{}, 1),
-		msgID:    0,
-		Scheduler: gocron.NewScheduler(time.UTC),
+		shmInfo:     sharedMemInfo,
+		shmData:     sharedMemData,
+		segmentInfo: segmentInfo,
+		segmentData: segmentData,
+		sysSignal:   make(chan os.Signal),
+		DoneSignal:  make(chan struct{}, 1),
+		Scheduler:   gocron.NewScheduler(time.UTC),
 	}
 
 	signal.Notify(publisher.sysSignal, os.Interrupt)
@@ -82,13 +61,13 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 func (p *Publisher) ResetMsgID() {
 	p.msgIDLock.Lock()
 	defer p.msgIDLock.Unlock()
-	p.msgID = 0
+	p.shmInfo.MsgID = 0
 }
 
 func (p *Publisher) IncreaseMsgID() {
 	p.msgIDLock.Lock()
 	defer p.msgIDLock.Unlock()
-	p.msgID++
+	p.shmInfo.MsgID++
 }
 
 func (p *Publisher) Write(data []byte) {
@@ -105,11 +84,11 @@ func (p *Publisher) Write(data []byte) {
 	}
 	p.shmInfo.writeLen = dataLen
 	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+p.shmInfo.writeLen], data)
-	Logger.Debugf("MsgID : %d", p.msgID)
+	Logger.Debugf("MsgID : %d", p.shmInfo.MsgID)
 }
 
 func (p *Publisher) Close() (err error) {
-	p.Write([]byte(""))
+	p.Write([]byte("EOF"))
 	p.IsClosed = true
 	err = p.segmentInfo.DeleteShm()
 	if err != nil {

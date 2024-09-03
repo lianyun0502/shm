@@ -11,56 +11,37 @@ import (
 )
 
 type Subscriber struct {
-	shm     *ShmMemInfo
+	shm         *ShmInfo
 	segmentInfo *shmlinux.Linuxshm
 	segmentData *shmlinux.Linuxshm
-	Handle  func(data []byte)
-	Data    []byte
+	Handle      func(data []byte)
+	Data        []byte
 
 	stopSignal chan struct{}
 	sysSignal  chan os.Signal
 
-	dataCH 	chan []byte
+	dataCH chan []byte
 
 	startFlag   bool
 	preWritePtr uint
 }
 
 func NewSubscriber(skey int, shmSize int) *Subscriber {
-	segmentInfo := shmlinux.NewLinuxShm()
-	segmentData := shmlinux.NewLinuxShm()
-	segmentInfo.InitShm(skey, int(InfoSize))
-	segmentData.InitShm(skey|0x6666, shmSize)
+	segmentInfo, _ := NewSegment(skey, int(InfoSize))
+	segmentData, _ := NewSegment(skey|0x6666, shmSize)
 
-	err := segmentInfo.CreateShm()
-	if err != nil {
-		Logger.Warning("CreateShm err : ", err)
-	}
-	err = segmentData.CreateShm()
-	if err != nil {
-		Logger.Warning("CreateShm err : ", err)
-	}
-
-	err = segmentInfo.AttachShm()
-	if err != nil {
-		Logger.Warning("AttachShm err : ", err)
-	}
-	err = segmentData.AttachShm()
-	if err != nil {
-		Logger.Warning("AttachShm err : ", err)
-	}
-	sharedMem := (*ShmMemInfo)(unsafe.Pointer(segmentInfo.Addr))
+	shmInfo := (*ShmInfo)(unsafe.Pointer(segmentInfo.Addr))
 	p := (*byte)(unsafe.Pointer(segmentData.Addr))
-	sharedMemData := unsafe.Slice(p, shmSize)
+	shmData := unsafe.Slice(p, shmSize)
 
 	subscriber := &Subscriber{
-		shm:         sharedMem,
-		segmentInfo:     segmentInfo,
-		segmentData:     segmentData,
+		shm:         shmInfo,
+		segmentInfo: segmentInfo,
+		segmentData: segmentData,
 		stopSignal:  make(chan struct{}),
 		sysSignal:   make(chan os.Signal, 1),
-		dataCH: 	make(chan []byte),
-		Data:        sharedMemData,
+		dataCH:      make(chan []byte),
+		Data:        shmData,
 		startFlag:   false,
 		preWritePtr: 0,
 	}
@@ -86,7 +67,7 @@ func (s *Subscriber) ReadLoop() {
 		s.startFlag = true
 		s.preWritePtr = s.shm.WritePtr
 		data := make([]byte, s.shm.writeLen)
-		Logger.Debugf("Ptr : %d, Len : %d", s.shm.WritePtr, s.shm.writeLen)
+		Logger.Debugf("Ptr : %d, Len : %d, MsgID : %d", s.shm.WritePtr, s.shm.writeLen, s.shm.MsgID)
 		if bytes.Equal(data, []byte("EOF")) {
 			s.Close()
 			return
@@ -101,4 +82,3 @@ func (s *Subscriber) Close() {
 	s.segmentData.DeleteShm()
 	Logger.Info("Subscriber Close")
 }
-
