@@ -12,7 +12,8 @@ import (
 
 type Subscriber struct {
 	shm     *ShmMemInfo
-	segment *shmlinux.Linuxshm
+	segmentInfo *shmlinux.Linuxshm
+	segmentData *shmlinux.Linuxshm
 	Handle  func(data []byte)
 	Data    []byte
 
@@ -54,7 +55,8 @@ func NewSubscriber(skey int, shmSize int) *Subscriber {
 
 	subscriber := &Subscriber{
 		shm:         sharedMem,
-		segment:     segmentInfo,
+		segmentInfo:     segmentInfo,
+		segmentData:     segmentData,
 		stopSignal:  make(chan struct{}),
 		sysSignal:   make(chan os.Signal, 1),
 		dataCH: 	make(chan []byte),
@@ -69,6 +71,7 @@ func NewSubscriber(skey int, shmSize int) *Subscriber {
 		sig := <-subscriber.sysSignal
 		if sig == os.Interrupt {
 			segmentInfo.DeleteShm()
+			segmentData.DeleteShm()
 		}
 	}()
 
@@ -94,7 +97,8 @@ func (s *Subscriber) ReadLoop() {
 }
 
 func (s *Subscriber) Close() {
-	s.segment.DeleteShm()
+	s.segmentInfo.DeleteShm()
+	s.segmentData.DeleteShm()
 	Logger.Info("Subscriber Close")
 }
 

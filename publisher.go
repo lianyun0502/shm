@@ -14,7 +14,8 @@ import (
 type Publisher struct {
 	shmInfo *ShmMemInfo
 	shmData []byte
-	segment *shmlinux.Linuxshm
+	segmentInfo *shmlinux.Linuxshm
+	segmentData *shmlinux.Linuxshm
 
 	sysSignal  chan os.Signal
 	DoneSignal chan struct{}
@@ -57,7 +58,8 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 	publisher := &Publisher{
 		shmInfo:   sharedMemInfo,
 		shmData:   sharedMemData,
-		segment:   segmentInfo,
+		segmentInfo:   segmentInfo,
+		segmentData:   segmentData,
 		sysSignal: make(chan os.Signal),
 		DoneSignal: make(chan struct{}, 1),
 		msgID:    0,
@@ -70,6 +72,7 @@ func NewPublisher(skey int, shmSize int) *Publisher {
 		sig := <-publisher.sysSignal
 		if sig == os.Interrupt {
 			segmentInfo.DeleteShm()
+			segmentData.DeleteShm()
 		}
 	}()
 	publisher.Scheduler.Every(1).Day().At("00:00").Do(publisher.ResetMsgID)
@@ -108,7 +111,12 @@ func (p *Publisher) Write(data []byte) {
 func (p *Publisher) Close() (err error) {
 	p.Write([]byte(""))
 	p.IsClosed = true
-	err = p.segment.DeleteShm()
+	err = p.segmentInfo.DeleteShm()
+	if err != nil {
+		Logger.Info("DeleteShm err : ", err)
+		return err
+	}
+	err = p.segmentData.DeleteShm()
 	if err != nil {
 		Logger.Info("DeleteShm err : ", err)
 		return err
