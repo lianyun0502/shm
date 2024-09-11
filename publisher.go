@@ -24,6 +24,7 @@ type Publisher struct {
 
 	Scheduler *gocron.Scheduler
 	msgIDLock sync.Mutex
+	copyLock sync.RWMutex
 }
 
 func NewPublisher(skey int, shmSize int) *Publisher {
@@ -74,16 +75,20 @@ func (p *Publisher) Write(data []byte) {
 	if p.IsClosed {
 		return
 	}
+	var writePtr uint
 	dataLen := uint(len(data))
 	if p.shmInfo.WritePtr+p.shmInfo.writeLen+dataLen > uint(p.shmInfo.Size) {
-		p.shmInfo.WritePtr = 0
+		writePtr = 0
 		p.ResetMsgID()
 	} else {
-		p.shmInfo.WritePtr += p.shmInfo.writeLen
+		writePtr = p.shmInfo.WritePtr + p.shmInfo.writeLen
 		p.IncreaseMsgID()
 	}
+	p.copyLock.Lock()
+	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+dataLen], data)
+	p.copyLock.Unlock()
 	p.shmInfo.writeLen = dataLen
-	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+p.shmInfo.writeLen], data)
+	p.shmInfo.WritePtr = writePtr
 	Logger.Debugf("MsgID : %d", p.shmInfo.MsgID)
 }
 
