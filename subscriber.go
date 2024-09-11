@@ -65,14 +65,18 @@ func (s *Subscriber) ReadLoop() {
 			continue
 		}
 		s.startFlag = true
-		s.preWritePtr = s.shm.WritePtr
-		data := make([]byte, s.shm.writeLen)
-		Logger.Debugf("Ptr : %d, Len : %d, MsgID : %d", s.shm.WritePtr, s.shm.writeLen, s.shm.MsgID)
+		// s.preWritePtr = s.shm.WritePtr
+		writePtr := s.shm.WritePtr
+		writeLen := s.shm.writeLen
+		msgID := s.shm.MsgID
+		data := make([]byte, writeLen)
+		Logger.Debugf("Ptr : %d, Len : %d, MsgID : %d", writePtr, writeLen, msgID)
+		copy(data, s.Data[writePtr:writePtr+writeLen])
+		s.preWritePtr = writePtr
 		if bytes.Equal(data, []byte("EOF")) {
 			s.Close()
 			return
 		}
-		copy(data, s.Data[s.shm.WritePtr:s.shm.WritePtr+s.shm.writeLen])
 		s.Handle(data)
 	}
 }
