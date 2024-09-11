@@ -75,6 +75,7 @@ func (p *Publisher) Write(data []byte) {
 	if p.IsClosed {
 		return
 	}
+	p.copyLock.Lock()
 	var writePtr uint
 	dataLen := uint(len(data))
 	if p.shmInfo.WritePtr+p.shmInfo.writeLen+dataLen > uint(p.shmInfo.Size) {
@@ -84,7 +85,6 @@ func (p *Publisher) Write(data []byte) {
 		writePtr = p.shmInfo.WritePtr + p.shmInfo.writeLen
 		p.IncreaseMsgID()
 	}
-	p.copyLock.Lock()
 	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+dataLen], data)
 	p.copyLock.Unlock()
 	p.shmInfo.writeLen = dataLen
