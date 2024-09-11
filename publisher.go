@@ -87,6 +87,15 @@ func (p *Publisher) Write(data []byte) {
 	Logger.Debugf("MsgID : %d", p.shmInfo.MsgID)
 }
 
+func (p *Publisher) WriteStruct(obj any) {
+	binData, err := GetBinary(obj)
+	if err != nil {
+		Logger.Info("GetBinary err : ", err)
+		return
+	}
+	p.Write(binData)
+}
+
 func (p *Publisher) Close() (err error) {
 	p.Write([]byte("EOF"))
 	p.IsClosed = true
