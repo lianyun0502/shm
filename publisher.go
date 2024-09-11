@@ -24,7 +24,7 @@ type Publisher struct {
 
 	Scheduler *gocron.Scheduler
 	msgIDLock sync.Mutex
-	copyLock sync.RWMutex
+	copyLock sync.Mutex
 }
 
 func NewPublisher(skey int, shmSize int) *Publisher {
