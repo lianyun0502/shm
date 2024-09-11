@@ -69,7 +69,7 @@ func (s *Subscriber) ReadLoop() {
 		writePtr := s.shm.WritePtr
 		writeLen := s.shm.writeLen
 		msgID := s.shm.MsgID
-		data := make([]byte, s.shm.writeLen)
+		data := make([]byte, writeLen)
 		Logger.Debugf("Ptr : %d, Len : %d, MsgID : %d", writePtr, writeLen, msgID)
 		copy(data, s.Data[writePtr:writePtr+writeLen])
 		s.preWritePtr = writePtr
