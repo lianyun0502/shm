@@ -85,7 +85,7 @@ func (p *Publisher) Write(data []byte) {
 		writePtr = p.shmInfo.WritePtr + p.shmInfo.writeLen
 		p.IncreaseMsgID()
 	}
-	copy((p.shmData)[p.shmInfo.WritePtr:p.shmInfo.WritePtr+dataLen], data)
+	copy((p.shmData)[writePtr:p.shmInfo.WritePtr+dataLen], data)
 	p.copyLock.Unlock()
 	p.shmInfo.writeLen = dataLen
 	p.shmInfo.WritePtr = writePtr
