@@ -69,6 +69,10 @@ func (s *Subscriber) ReadLoop() {
 		writePtr := s.shm.WritePtr
 		writeLen := s.shm.writeLen
 		msgID := s.shm.MsgID
+		if writePtr+writeLen > uint(len(s.Data)) {
+			Logger.WithField("shm", "subscriber").Warning("WritePtr + WriteLen > DataLen")
+			continue
+		}
 		data := make([]byte, writeLen)
 		Logger.Debugf("Ptr : %d, Len : %d, MsgID : %d", writePtr, writeLen, msgID)
 		copy(data, s.Data[writePtr:writePtr+writeLen])
