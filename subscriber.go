@@ -60,6 +60,12 @@ func NewSubscriber(skey int, shmSize int) *Subscriber {
 }
 
 func (s *Subscriber) ReadLoop() {
+	defer func() {
+        if r := recover(); r != nil {
+            Logger.WithField("shm", "subscriber").Panicf("Recovered in ReadLoop : %v", r)
+			go s.ReadLoop()
+        }
+    }()
 	for {
 		if (s.preWritePtr == s.shm.WritePtr) && s.startFlag {
 			continue
